@@ -6,10 +6,12 @@ import CaManagement from './CaManagement';
 import CreateCsrForm from './CreateCsrForm';
 import SignCertificateForm from './SignCertificateForm';
 import RevocationManagement from './RevocationManagement';
+import KeystoreManager from './KeystoreManager';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import GppBadIcon from '@mui/icons-material/GppBad';
+import KeyIcon from '@mui/icons-material/Key';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 
@@ -41,18 +43,15 @@ const AppContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [tabValue, setTabValue] = useState(0);
 
-  // Read initial mode from localStorage or default to 'light'
   const [mode, setMode] = useState<'light' | 'dark'>(() => {
     const savedMode = localStorage.getItem('themeMode') as 'light' | 'dark';
     return savedMode || 'light';
   });
 
-  // Save mode to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('themeMode', mode);
   }, [mode]);
 
-  // Set initial language from localStorage
   useEffect(() => {
     const savedLang = localStorage.getItem('language');
     if (savedLang && savedLang !== i18n.language) {
@@ -80,7 +79,7 @@ const AppContent: React.FC = () => {
   const handleLanguageChange = (event: SelectChangeEvent<string>) => {
     const newLang = event.target.value;
     i18n.changeLanguage(newLang);
-    localStorage.setItem('language', newLang); // Save language to localStorage
+    localStorage.setItem('language', newLang);
   };
 
   const toggleColorMode = () => {
@@ -126,6 +125,7 @@ const AppContent: React.FC = () => {
               <Tab icon={<NoteAddIcon />} iconPosition="start" label={t('tabCsr')} {...a11yProps(1)} />
               <Tab icon={<VerifiedUserIcon />} iconPosition="start" label={t('tabSign')} {...a11yProps(2)} />
               <Tab icon={<GppBadIcon />} iconPosition="start" label={t('tabRevoke')} {...a11yProps(3)} />
+              <Tab icon={<KeyIcon />} iconPosition="start" label="Keystore Manager" {...a11yProps(4)} />
             </Tabs>
           </Box>
 
@@ -141,6 +141,9 @@ const AppContent: React.FC = () => {
             </TabPanel>
             <TabPanel value={tabValue} index={3}>
               <Box sx={{ p: 3 }}><RevocationManagement /></Box>
+            </TabPanel>
+            <TabPanel value={tabValue} index={4}>
+              <Box sx={{ p: 3 }}><KeystoreManager /></Box>
             </TabPanel>
           </Paper>
         </Box>
