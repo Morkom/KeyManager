@@ -1,7 +1,7 @@
 package dev.morkom.keymanager.controller;
 
 import dev.morkom.keymanager.dto.CertificateDetailsDto;
-import dev.morkom.keymanager.dto.KeystoreEntry;
+import dev.morkom.keymanager.dto.KeystoreEntryDetails;
 import dev.morkom.keymanager.dto.KeystoreModificationRequest;
 import dev.morkom.keymanager.service.KeystoreService;
 import org.springframework.core.io.Resource;
@@ -25,10 +25,10 @@ public class KeystoreController {
     }
 
     @PostMapping("/view")
-    public ResponseEntity<List<KeystoreEntry>> viewKeystore(
+    public ResponseEntity<List<KeystoreEntryDetails>> viewKeystore(
             @RequestParam("file") MultipartFile file,
             @RequestParam("password") String password) throws Exception {
-        List<KeystoreEntry> entries = keystoreService.viewKeystore(file, password);
+        List<KeystoreEntryDetails> entries = keystoreService.viewKeystore(file, password);
         return ResponseEntity.ok(entries);
     }
 
@@ -39,6 +39,15 @@ public class KeystoreController {
             @RequestParam("alias") String alias) throws Exception {
         CertificateDetailsDto details = keystoreService.getCertificateDetails(file, password, alias);
         return ResponseEntity.ok(details);
+    }
+
+    @PostMapping("/view-chain")
+    public ResponseEntity<List<CertificateDetailsDto>> viewChain(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("password") String password,
+            @RequestParam("alias") String alias) throws Exception {
+        List<CertificateDetailsDto> chain = keystoreService.getCertificateChainDetails(file, password, alias);
+        return ResponseEntity.ok(chain);
     }
 
     @PostMapping(value = "/save", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })

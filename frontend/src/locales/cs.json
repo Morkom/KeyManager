@@ -4,6 +4,7 @@
   "tabCsr": "Generovat CSR",
   "tabSign": "Podepsat certifikát",
   "tabRevoke": "Revokace",
+  "keystoreManager": "Správce úložišť",
   "manageCaTitle": "Spravovat certifikační autority",
   "createCaTitle": "Vytvořit novou kořenovou CA",
   "commonName": "Běžné jméno (CN)",

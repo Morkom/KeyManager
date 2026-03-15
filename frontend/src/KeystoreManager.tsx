@@ -2,17 +2,21 @@ import React, { useState, useRef } from 'react';
 import {
   Box, Button, TextField, Typography, Paper, Grid, Alert,
   List, ListItem, ListItemText, ListItemIcon, IconButton,
-  Dialog, DialogTitle, DialogContent, Table, TableBody, TableRow, TableCell, DialogActions
+  Dialog, DialogTitle, DialogContent, Table, TableBody, TableRow, TableCell, DialogActions, Chip, Divider
 } from '@mui/material';
-import { VpnKey, CheckCircle, Delete, Info, Edit } from '@mui/icons-material';
+import { VpnKey, CheckCircle, Delete, Info, Edit, Warning, AccountTree } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
-interface KeystoreEntry {
+// ... (interfaces remain the same)
+interface KeystoreEntryDetails {
   alias: string;
-  entryType: string;
-  certificateDetails: string;
+  entryType: 'PRIVATE_KEY' | 'TRUSTED_CERTIFICATE';
+  certificateChainLength: number;
+  algorithm: string;
+  certificateSummary: string;
+  isExpired: boolean;
 }
 
 interface CertificateDetailsDto {
@@ -34,18 +38,22 @@ interface Modification {
   newAlias?: string;
 }
 
+
 const KeystoreManager: React.FC = () => {
   const [password, setPassword] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [entries, setEntries] = useState<KeystoreEntry[]>([]);
+  const [entries, setEntries] = useState<KeystoreEntryDetails[]>([]);
   const [modifications, setModifications] = useState<Modification[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<CertificateDetailsDto | null>(null);
+  const [selectedChain, setSelectedChain] = useState<CertificateDetailsDto[]>([]);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isChainViewerOpen, setIsChainViewerOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameAlias, setRenameAlias] = useState({ old: '', new: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ... (handleFileChange, handleView, handleDeleteEntry, handleOpenRenameDialog, handleRenameEntry, handleSaveChanges remain the same)
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
@@ -66,7 +74,7 @@ const KeystoreManager: React.FC = () => {
     formData.append('file', file);
     formData.append('password', password);
     try {
-      const res = await axios.post<KeystoreEntry[]>(`${API_BASE_URL}/api/keystore/view`, formData);
+      const res = await axios.post<KeystoreEntryDetails[]>(`${API_BASE_URL}/api/keystore/view`, formData);
       setEntries(res.data);
       setModifications([]);
     } catch (err) {
@@ -86,6 +94,21 @@ const KeystoreManager: React.FC = () => {
       setIsViewerOpen(true);
     } catch (err) {
       setError("Failed to load certificate details.");
+    }
+  };
+
+  const handleViewChain = async (alias: string) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('password', password);
+    formData.append('alias', alias);
+    try {
+      const res = await axios.post<CertificateDetailsDto[]>(`${API_BASE_URL}/api/keystore/view-chain`, formData);
+      setSelectedChain(res.data);
+      setIsChainViewerOpen(true);
+    } catch (err) {
+      setError("Failed to load certificate chain.");
     }
   };
 
@@ -134,24 +157,27 @@ const KeystoreManager: React.FC = () => {
   };
 
   const renderDetailsTable = (details: CertificateDetailsDto) => (
-    <Table size="small">
-      <TableBody>
-        <TableRow><TableCell colSpan={2}><Typography variant="h6">Subject</Typography></TableCell></TableRow>
-        {Object.entries(details.subject).map(([k, v]) => <TableRow key={k}><TableCell>{k}</TableCell><TableCell>{v}</TableCell></TableRow>)}
-        <TableRow><TableCell colSpan={2}><Typography variant="h6">Issuer</Typography></TableCell></TableRow>
-        {Object.entries(details.issuer).map(([k, v]) => <TableRow key={k}><TableCell>{k}</TableCell><TableCell>{v}</TableCell></TableRow>)}
-        <TableRow><TableCell colSpan={2}><Typography variant="h6">Details</Typography></TableCell></TableRow>
-        <TableRow><TableCell>Serial Number</TableCell><TableCell>{details.serialNumber}</TableCell></TableRow>
-        <TableRow><TableCell colSpan={2}><Typography variant="h6">Fingerprints</Typography></TableCell></TableRow>
-        <TableRow><TableCell>SHA-256</TableCell><TableCell sx={{ wordBreak: 'break-all' }}>{details.sha256Fingerprint}</TableCell></TableRow>
-      </TableBody>
-    </Table>
+    <Box sx={{ mb: 2 }}>
+      <Table size="small">
+        <TableBody>
+          <TableRow><TableCell colSpan={2}><Typography variant="h6">Subject</Typography></TableCell></TableRow>
+          {Object.entries(details.subject).map(([k, v]) => <TableRow key={`subj-${k}`}><TableCell>{k}</TableCell><TableCell>{v}</TableCell></TableRow>)}
+          <TableRow><TableCell colSpan={2}><Typography variant="h6">Issuer</Typography></TableCell></TableRow>
+          {Object.entries(details.issuer).map(([k, v]) => <TableRow key={`iss-${k}`}><TableCell>{k}</TableCell><TableCell>{v}</TableCell></TableRow>)}
+          <TableRow><TableCell colSpan={2}><Typography variant="h6">Details</Typography></TableCell></TableRow>
+          <TableRow><TableCell>Serial Number</TableCell><TableCell>{details.serialNumber}</TableCell></TableRow>
+          <TableRow><TableCell colSpan={2}><Typography variant="h6">Fingerprints</Typography></TableCell></TableRow>
+          <TableRow><TableCell>SHA-256</TableCell><TableCell sx={{ wordBreak: 'break-all' }}>{details.sha256Fingerprint}</TableCell></TableRow>
+        </TableBody>
+      </Table>
+    </Box>
   );
 
   return (
     <Box>
       <Typography variant="h5" component="h2" gutterBottom>Keystore Manager</Typography>
       <Box component="form" onSubmit={handleView} noValidate>
+        {/* Form Grid... */}
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6}><Button variant="outlined" fullWidth onClick={() => fileInputRef.current?.click()}>{file ? `Selected: ${file.name}` : "Select Keystore File"}</Button><input type="file" ref={fileInputRef} hidden accept=".jks,.p12,.pfx" onChange={handleFileChange} /></Grid>
           <Grid item xs={12} sm={6}><TextField fullWidth required type="password" label="Keystore Password" value={password} onChange={(e) => setPassword(e.target.value)} /></Grid>
@@ -173,14 +199,25 @@ const KeystoreManager: React.FC = () => {
                 <ListItem
                   secondaryAction={
                     <>
-                      <IconButton edge="end" onClick={() => handleViewEntry(entry.alias)}><Info /></IconButton>
-                      <IconButton edge="end" onClick={() => handleOpenRenameDialog(entry.alias)}><Edit /></IconButton>
-                      <IconButton edge="end" onClick={() => handleDeleteEntry(entry.alias)}><Delete /></IconButton>
+                      <IconButton edge="end" title="View Certificate Details" onClick={() => handleViewEntry(entry.alias)}><Info /></IconButton>
+                      <IconButton edge="end" title="View Certificate Chain" onClick={() => handleViewChain(entry.alias)}><AccountTree /></IconButton>
+                      <IconButton edge="end" title="Rename Alias" onClick={() => handleOpenRenameDialog(entry.alias)}><Edit /></IconButton>
+                      <IconButton edge="end" title="Delete Entry" onClick={() => handleDeleteEntry(entry.alias)}><Delete /></IconButton>
                     </>
                   }
                 >
-                  <ListItemIcon>{entry.entryType === 'Key Pair' ? <VpnKey /> : <CheckCircle />}</ListItemIcon>
-                  <ListItemText primary={entry.alias} secondary={entry.certificateDetails} />
+                  <ListItemIcon>{entry.entryType === 'PRIVATE_KEY' ? <VpnKey color="primary" /> : <CheckCircle color="success" />}</ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
+                        {entry.alias}
+                        <Chip label={entry.algorithm} size="small" sx={{ ml: 2, mr: 1 }} />
+                        <Chip label={`Chain: ${entry.certificateChainLength}`} size="small" />
+                        {entry.isExpired && <Chip icon={<Warning />} label="Expired" color="error" size="small" sx={{ ml: 1 }} />}
+                      </Box>
+                    }
+                    secondary={entry.certificateSummary}
+                  />
                 </ListItem>
               </Paper>
             ))}
@@ -189,6 +226,7 @@ const KeystoreManager: React.FC = () => {
       )}
 
       <Dialog open={isViewerOpen} onClose={() => setIsViewerOpen(false)} maxWidth="md" fullWidth><DialogTitle>Certificate Details</DialogTitle><DialogContent>{selectedEntry && renderDetailsTable(selectedEntry)}</DialogContent><DialogActions><Button onClick={() => setIsViewerOpen(false)}>Close</Button></DialogActions></Dialog>
+      <Dialog open={isChainViewerOpen} onClose={() => setIsChainViewerOpen(false)} maxWidth="md" fullWidth><DialogTitle>Certificate Chain</DialogTitle><DialogContent>{selectedChain.map((cert, index) => <Box key={index}><Typography variant="h5" gutterBottom>Certificate #{index + 1}</Typography>{renderDetailsTable(cert)}{index < selectedChain.length - 1 && <Divider sx={{ my: 2 }} />}</Box>)}</DialogContent><DialogActions><Button onClick={() => setIsChainViewerOpen(false)}>Close</Button></DialogActions></Dialog>
       <Dialog open={isRenameOpen} onClose={() => setIsRenameOpen(false)}><DialogTitle>Rename Alias</DialogTitle><DialogContent><TextField autoFocus margin="dense" label="New Alias" type="text" fullWidth variant="standard" value={renameAlias.new} onChange={(e) => setRenameAlias({ ...renameAlias, new: e.target.value })} /></DialogContent><DialogActions><Button onClick={() => setIsRenameOpen(false)}>Cancel</Button><Button onClick={handleRenameEntry}>Rename</Button></DialogActions></Dialog>
     </Box>
   );

@@ -4,6 +4,7 @@
   "tabCsr": "Generate CSR",
   "tabSign": "Sign Certificate",
   "tabRevoke": "Revocation",
+  "keystoreManager": "Keystore Manager",
   "manageCaTitle": "Manage Certificate Authorities",
   "createCaTitle": "Create New Root CA",
   "commonName": "Common Name",
