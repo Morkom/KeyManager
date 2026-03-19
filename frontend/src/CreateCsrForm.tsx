@@ -19,7 +19,8 @@ const CreateCsrForm: React.FC = () => {
     state: 'CZ',
     country: 'CZ',
     keyAlgorithm: 'RSA',
-    password: ''
+    password: '',
+    pemAlgorithm: 'AES_256_CBC',
   });
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<{ csrPem: string; privateKeyDownloadUrl: string } | null>(null);
@@ -48,6 +49,23 @@ const CreateCsrForm: React.FC = () => {
     }
   };
 
+  const handlePemDownload = async () => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/csr/download-pem`, formData, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      const filename = `private-key-${formData.commonName.replace(/\s+/g, '_').toLowerCase()}.pem`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setError("Failed to download Encrypted PEM key.");
+    }
+  };
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopySuccess(true);
@@ -63,91 +81,34 @@ const CreateCsrForm: React.FC = () => {
       <Box component="form" onSubmit={handleSubmit} noValidate>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              required
-              name="commonName"
-              label={t('commonName')}
-              value={formData.commonName}
-              onChange={handleChange}
-            />
+            <TextField fullWidth required name="commonName" label={t('commonName')} value={formData.commonName} onChange={handleChange} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              required
-              name="organization"
-              label={t('organization')}
-              value={formData.organization}
-              onChange={handleChange}
-            />
+            <TextField fullWidth required name="organization" label={t('organization')} value={formData.organization} onChange={handleChange} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              required
-              name="organizationalUnit"
-              label={t('organizationalUnit')}
-              value={formData.organizationalUnit}
-              onChange={handleChange}
-            />
+            <TextField fullWidth required name="organizationalUnit" label={t('organizationalUnit')} value={formData.organizationalUnit} onChange={handleChange} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              required
-              name="locality"
-              label={t('locality')}
-              value={formData.locality}
-              onChange={handleChange}
-            />
+            <TextField fullWidth required name="locality" label={t('locality')} value={formData.locality} onChange={handleChange} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              required
-              name="state"
-              label={t('state')}
-              value={formData.state}
-              onChange={handleChange}
-            />
+            <TextField fullWidth required name="state" label={t('state')} value={formData.state} onChange={handleChange} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              required
-              name="country"
-              label={t('country')}
-              value={formData.country}
-              onChange={handleChange}
-              inputProps={{ maxLength: 2 }}
-            />
+            <TextField fullWidth required name="country" label={t('country')} value={formData.country} onChange={handleChange} inputProps={{ maxLength: 2 }} />
           </Grid>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth required>
               <InputLabel id="key-algo-csr-label">{t('keyAlgorithm')}</InputLabel>
-              <Select
-                labelId="key-algo-csr-label"
-                name="keyAlgorithm"
-                value={formData.keyAlgorithm}
-                label={t('keyAlgorithm')}
-                onChange={handleChange as any}
-              >
+              <Select labelId="key-algo-csr-label" name="keyAlgorithm" value={formData.keyAlgorithm} label={t('keyAlgorithm')} onChange={handleChange as any}>
                 <MenuItem value="RSA">RSA-4096</MenuItem>
                 <MenuItem value="EC">ECDSA-P384</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              required
-              type="password"
-              name="password"
-              label={t('passwordForPrivateKey')}
-              value={formData.password}
-              onChange={handleChange}
-            />
+            <TextField fullWidth required type="password" name="password" label={t('passwordForPrivateKey')} value={formData.password} onChange={handleChange} />
           </Grid>
         </Grid>
         <Button type="submit" variant="contained" sx={{ mt: 3, mb: 2 }}>
@@ -158,21 +119,24 @@ const CreateCsrForm: React.FC = () => {
       {response && (
         <Box sx={{ mt: 4 }}>
           <Alert severity="success">{t('csrCreatedSuccess')}</Alert>
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-             <Button
-                variant="outlined"
-                onClick={() => window.open(`${API_BASE_URL}${response.privateKeyDownloadUrl}`, '_blank')}
-             >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+             <Button variant="outlined" onClick={() => window.open(`${API_BASE_URL}${response.privateKeyDownloadUrl}`, '_blank')}>
                 {t('downloadPrivateKey')}
              </Button>
+             <Button variant="outlined" onClick={handlePemDownload}>
+                Download Encrypted PEM
+             </Button>
+             <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel id="pem-algo-label">PEM Format</InputLabel>
+                <Select labelId="pem-algo-label" name="pemAlgorithm" value={formData.pemAlgorithm} label="PEM Format" onChange={handleChange as any}>
+                    <MenuItem value="AES_256_CBC">AES-256</MenuItem>
+                    <MenuItem value="AES_128_CBC">AES-128</MenuItem>
+                </Select>
+             </FormControl>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
             <Typography variant="h6">{t('csrPemDisplay')}</Typography>
-            <Button
-              startIcon={<ContentCopy />}
-              onClick={() => handleCopy(response.csrPem)}
-              size="small"
-            >
+            <Button startIcon={<ContentCopy />} onClick={() => handleCopy(response.csrPem)} size="small">
               {copySuccess ? t('copied') : t('copy')}
             </Button>
           </Box>

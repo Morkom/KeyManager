@@ -1,5 +1,7 @@
 package dev.morkom.keymanager.dto;
 
+import java.util.Set;
+
 public record CreateCsrRequest(
     String commonName,
     String organization,
@@ -8,5 +10,6 @@ public record CreateCsrRequest(
     String state,
     String country,
     String keyAlgorithm,
-    String password
+    String password,
+    String pemAlgorithm // e.g., "AES_256_CBC"
 ) {}

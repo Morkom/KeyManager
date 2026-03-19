@@ -1,14 +1,19 @@
 package dev.morkom.keymanager.util;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMEncryptor;
 import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.openssl.jcajce.JcePEMEncryptorBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
@@ -33,6 +38,20 @@ public class PemUtils {
             pemWriter.writeObject(new PemObject("CERTIFICATE REQUEST", csr.getEncoded()));
         }
         return stringWriter.toString();
+    }
+
+    public static byte[] toEncryptedPem(PrivateKey privateKey, String password, String algorithm) throws Exception {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+
+            // **THE FIX:** Use JcePEMEncryptorBuilder to create the correct PEMEncryptor type.
+            PEMEncryptor encryptor = new JcePEMEncryptorBuilder(algorithm)
+                    .setSecureRandom(new java.security.SecureRandom())
+                    .build(password.toCharArray());
+
+            pemWriter.writeObject(new JcaMiscPEMGenerator(privateKey, encryptor));
+        }
+        return stringWriter.toString().getBytes();
     }
 
     public static PKCS10CertificationRequest csrFromPem(String pem) throws Exception {

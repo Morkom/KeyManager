@@ -35,4 +35,14 @@ public class CsrController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
     }
+
+    @PostMapping("/download-pem")
+    public ResponseEntity<Resource> downloadEncryptedPemKey(@RequestBody CreateCsrRequest request) throws Exception {
+        Resource resource = csrService.generateEncryptedPemKey(request);
+        String filename = "private-key-" + request.commonName().replaceAll("\\s+", "_").toLowerCase() + ".pem";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(resource);
+    }
 }
