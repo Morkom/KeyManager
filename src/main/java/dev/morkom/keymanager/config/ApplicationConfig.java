@@ -45,8 +45,4 @@ public class ApplicationConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    
-    // NOTE: The AuthenticationProvider bean is intentionally removed.
-    // Spring Boot will automatically create a DaoAuthenticationProvider
-    // using the UserDetailsService and PasswordEncoder beans defined above.
 }

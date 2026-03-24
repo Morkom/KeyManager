@@ -7,6 +7,7 @@ import dev.morkom.keymanager.model.User;
 import dev.morkom.keymanager.repository.UserRepository;
 import dev.morkom.keymanager.security.JwtUtil;
 import jakarta.annotation.PostConstruct;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +23,7 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/auth")
+@Profile("!no-auth")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;

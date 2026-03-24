@@ -23,6 +23,8 @@ services:
       - ./keystores:/app/keystores
       - ./crl_db:/app/crl_db
     environment:
+      # To disable authentication for development, set the profile to "no-auth"
+      - SPRING_PROFILES_ACTIVE=no-auth
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/keymanager
       - SPRING_DATASOURCE_USERNAME=keymanager
       - SPRING_DATASOURCE_PASSWORD=password
@@ -40,6 +42,8 @@ services:
       - ./frontend:/app
     environment:
       - VITE_API_BASE_URL=http://localhost:8080
+      # This variable controls whether the frontend requires login.
+      - VITE_AUTH_ENABLED=${SPRING_PROFILES_ACTIVE:-}
     command: >
       sh -c "rm -rf node_modules/.vite && npm install && npm run dev"
 

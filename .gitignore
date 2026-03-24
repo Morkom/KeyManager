@@ -41,3 +41,5 @@ build/
 /frontend/node_modules/
 /keystores
 /crl_db
+
+/src/main/resources/xsd/

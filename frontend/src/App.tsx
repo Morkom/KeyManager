@@ -15,6 +15,8 @@ import KeystoreManager from './KeystoreManager';
 import AuditLog from './AuditLog';
 import UserManagement from './UserManagement';
 import SshKeyGenerator from './SshKeyGenerator';
+import CryptoToolsPage from './CryptoToolsPage';
+import XmlValidator from './XmlValidator';
 
 const AppContent: React.FC = () => {
   const { i18n } = useTranslation();
@@ -59,7 +61,7 @@ const AppContent: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout mode={mode} toggleColorMode={toggleColorMode} />}>
-            <Route index element={<Navigate to="/ssh" replace />} />
+            <Route index element={<Navigate to="/xml" replace />} />
             <Route path="ca" element={<CaManagement />} />
             <Route path="csr" element={<CreateCsrForm />} />
             <Route path="sign" element={<SignCertificateForm />} />
@@ -68,6 +70,8 @@ const AppContent: React.FC = () => {
             <Route path="audit" element={<AuditLog />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="ssh" element={<SshKeyGenerator />} />
+            <Route path="crypto" element={<CryptoToolsPage />} />
+            <Route path="xml" element={<XmlValidator />} />
           </Route>
         </Route>
       </Routes>
