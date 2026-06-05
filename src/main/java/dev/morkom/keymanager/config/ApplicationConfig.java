@@ -17,29 +17,29 @@ import java.util.stream.Collectors;
 @Configuration
 public class ApplicationConfig {
 
-    private final UserRepository userRepository;
+//    private final UserRepository userRepository;
 
-    public ApplicationConfig(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-
-    @Bean
-    public UserDetailsService userDetailsService() {
-        return username -> userRepository.findByUsername(username)
-                .map(user -> new User(
-                        user.getUsername(),
-                        user.getPassword(),
-                        user.getRoles().stream()
-                                .map(role -> new SimpleGrantedAuthority(role.name()))
-                                .collect(Collectors.toList())
-                ))
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+//    public ApplicationConfig(UserRepository userRepository) {
+//        this.userRepository = userRepository;
+//    }
+//
+//    @Bean
+//    public UserDetailsService userDetailsService() {
+//        return username -> userRepository.findByUsername(username)
+//                .map(user -> new User(
+//                        user.getUsername(),
+//                        user.getPassword(),
+//                        user.getRoles().stream()
+//                                .map(role -> new SimpleGrantedAuthority(role.name()))
+//                                .collect(Collectors.toList())
+//                ))
+//                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+//    }
+//
+//    @Bean
+//    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+//        return config.getAuthenticationManager();
+//    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

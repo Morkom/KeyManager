@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Button, TextField, Typography, Paper, Grid, Alert, Switch, FormControlLabel, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
+import { Box, Button, TextField, Typography, Paper, Grid, Alert, Switch, FormControlLabel, Select, MenuItem, InputLabel, FormControl, Autocomplete } from '@mui/material';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -13,7 +13,7 @@ const XmlValidator: React.FC = () => {
   const [xsdText, setXsdText] = useState('');
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [xsdFile, setXsdFile] = useState<File | null>(null);
-  const [prepackagedXsd, setPrepackagedXsd] = useState('');
+  const [prepackagedXsd, setPrepackagedXsd] = useState<string | null>(null);
   const [prepackagedXsdList, setPrepackagedXsdList] = useState<string[]>([]);
   const [result, setResult] = useState<{ valid: boolean; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +55,7 @@ const XmlValidator: React.FC = () => {
       formData.append('xsdFile', getFileFromText(xsdText, 'xsd-input.xsd', 'application/xml'));
     } else if (xsdInputMode === 'file' && xsdFile) {
       formData.append('xsdFile', xsdFile);
-    } else if (xsdInputMode === 'prepackaged') {
+    } else if (xsdInputMode === 'prepackaged' && prepackagedXsd) {
       formData.append('prepackagedXsd', prepackagedXsd);
     } else {
       setError("XSD source is required.");
@@ -100,12 +100,12 @@ const XmlValidator: React.FC = () => {
           {xsdInputMode === 'text' && <TextField label="XSD Content" multiline rows={13} fullWidth value={xsdText} onChange={(e) => setXsdText(e.target.value)} />}
           {xsdInputMode === 'file' && <Button variant="outlined" fullWidth onClick={() => xsdFileRef.current?.click()}>{xsdFile ? `Selected: ${xsdFile.name}` : "Select XSD File"}</Button>}
           {xsdInputMode === 'prepackaged' && (
-            <FormControl fullWidth>
-              <InputLabel>Select Schema</InputLabel>
-              <Select value={prepackagedXsd} label="Select Schema" onChange={(e) => setPrepackagedXsd(e.target.value)}>
-                {prepackagedXsdList.map(name => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              options={prepackagedXsdList}
+              value={prepackagedXsd}
+              onChange={(event, newValue) => setPrepackagedXsd(newValue)}
+              renderInput={(params) => <TextField {...params} label="Select Schema" />}
+            />
           )}
           <input type="file" ref={xsdFileRef} hidden accept=".xsd" onChange={(e) => setXsdFile(e.target.files?.[0] || null)} />
         </Grid>

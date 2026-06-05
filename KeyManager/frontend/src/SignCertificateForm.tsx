@@ -1,46 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Button, TextField, Typography, Paper, Grid, Alert,
-  FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput
+  FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { ContentCopy } from '@mui/icons-material';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
-interface ExtensionDto {
-    id: string;
-    name: string;
-    description: string;
-}
-
 const SignCertificateForm: React.FC = () => {
   const { t } = useTranslation();
-  const location = useLocation();
   const [formData, setFormData] = useState({
     csrPem: '',
     caFilename: '',
     caPassword: '',
-    privateKeyCacheId: '',
-    extensions: [] as string[],
+    privateKeyCacheId: '' // New state to store the cache ID
   });
   const [caList, setCaList] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<{ signedCertificatePem: string } | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [availableExtensions, setAvailableExtensions] = useState<ExtensionDto[]>([]);
-
-  useEffect(() => {
-    if (location.state?.csrPem) {
-      setFormData(prev => ({
-        ...prev,
-        csrPem: location.state.csrPem,
-        privateKeyCacheId: location.state.privateKeyCacheId,
-      }));
-    }
-  }, [location.state]);
 
   useEffect(() => {
     const fetchCaList = async () => {
@@ -55,36 +35,12 @@ const SignCertificateForm: React.FC = () => {
         setError(t('errorFailedToFetchCaList'));
       }
     };
-    const fetchExtensions = async () => {
-        try {
-            const res = await axios.get<ExtensionDto[]>(`${API_BASE_URL}/api/extensions`);
-            setAvailableExtensions(res.data);
-            // Pre-select some common extensions
-            const defaultExtensions = res.data
-                .filter(ext => ["digitalSignature", "keyEncipherment", "serverAuth", "subjectKeyIdentifier", "authorityKeyIdentifier"].includes(ext.id))
-                .map(ext => ext.id);
-            setFormData(prev => ({ ...prev, extensions: defaultExtensions }));
-        } catch (err) {
-            console.error("Failed to fetch extensions:", err);
-        }
-    };
     fetchCaList();
-    fetchExtensions();
   }, [t]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name as string]: value });
-  };
-
-  const handleExtensionsChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    const {
-      target: { value },
-    } = event;
-    setFormData({
-      ...formData,
-      extensions: typeof value === 'string' ? value.split(',') : value as string[],
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,6 +74,7 @@ const SignCertificateForm: React.FC = () => {
       const res = await axios.post(`${API_BASE_URL}/api/ca/sign-and-download-p12`, formData, {
         responseType: 'blob',
       });
+      // **THE FIX:** Use res.data directly as it's already a Blob
       const url = window.URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href = url;
@@ -125,7 +82,7 @@ const SignCertificateForm: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url); // Clean up the object URL
     } catch (err) {
       setError("Failed to download P12. Private key might have expired or password incorrect.");
     }
@@ -187,30 +144,6 @@ const SignCertificateForm: React.FC = () => {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-                <InputLabel id="extensions-label">Extensions</InputLabel>
-                <Select
-                    labelId="extensions-label"
-                    multiple
-                    value={formData.extensions}
-                    onChange={handleExtensionsChange as any}
-                    input={<OutlinedInput label="Extensions" />}
-                    renderValue={(selected) => (
-                        (selected as string[])
-                            .map(id => availableExtensions.find(ext => ext.id === id)?.name || id)
-                            .join(', ')
-                    )}
-                >
-                    {availableExtensions.map((ext) => (
-                        <MenuItem key={ext.id} value={ext.id}>
-                            <Checkbox checked={formData.extensions.indexOf(ext.id) > -1} />
-                            <ListItemText primary={ext.name} secondary={ext.description} />
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-          </Grid>
         </Grid>
         <Button type="submit" variant="contained" sx={{ mt: 3, mb: 2 }}>
           {t('signCertButton')}
@@ -230,7 +163,7 @@ const SignCertificateForm: React.FC = () => {
             <Button
               variant="outlined"
               onClick={handleP12Download}
-              disabled={!formData.privateKeyCacheId}
+              disabled={!formData.privateKeyCacheId} // Disable if no private key is cached
             >
               Download Signed P12
             </Button>

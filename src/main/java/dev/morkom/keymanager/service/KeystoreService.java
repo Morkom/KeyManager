@@ -23,57 +23,45 @@ import java.util.*;
 @Service
 public class KeystoreService {
 
-    private final AuditEventService auditEventService;
-
-    public KeystoreService(AuditEventService auditEventService) {
-        this.auditEventService = auditEventService;
-    }
-
     public List<KeystoreEntryDetails> viewKeystore(MultipartFile file, String password) throws Exception {
-        try {
-            if (file.isEmpty()) {
-                return Collections.emptyList();
-            }
-            KeyStore keyStore = loadKeystore(file, password);
-            List<KeystoreEntryDetails> entries = new ArrayList<>();
-            List<String> aliases = Collections.list(keyStore.aliases());
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy");
-
-            for (String alias : aliases) {
-                String entryType;
-                String algorithm;
-                int chainLength = 0;
-
-                Certificate[] chain = keyStore.getCertificateChain(alias);
-                if (chain == null) {
-                    chain = new Certificate[]{keyStore.getCertificate(alias)};
-                }
-                chainLength = chain.length;
-
-                X509Certificate mainCert = (X509Certificate) chain[0];
-                String subject = mainCert.getSubjectX500Principal().getName();
-                String expiry = "Expires: " + sdf.format(mainCert.getNotAfter());
-                String summary = subject + " (" + expiry + ")";
-                boolean isExpired = mainCert.getNotAfter().before(new Date());
-
-                if (keyStore.isKeyEntry(alias)) {
-                    entryType = "PRIVATE_KEY";
-                    KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(password.toCharArray());
-                    KeyStore.PrivateKeyEntry pkEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(alias, protParam);
-                    algorithm = pkEntry.getPrivateKey().getAlgorithm();
-                } else {
-                    entryType = "TRUSTED_CERTIFICATE";
-                    algorithm = mainCert.getPublicKey().getAlgorithm();
-                }
-
-                entries.add(new KeystoreEntryDetails(alias, entryType, chainLength, algorithm, summary, isExpired));
-            }
-            auditEventService.logEvent("VIEW_KEYSTORE", "Successfully viewed keystore: " + file.getOriginalFilename(), true);
-            return entries;
-        } catch (Exception e) {
-            auditEventService.logEvent("VIEW_KEYSTORE", "Failed to view keystore: " + file.getOriginalFilename() + " - " + e.getMessage(), false);
-            throw e;
+        if (file.isEmpty()) {
+            return Collections.emptyList();
         }
+        KeyStore keyStore = loadKeystore(file, password);
+        List<KeystoreEntryDetails> entries = new ArrayList<>();
+        List<String> aliases = Collections.list(keyStore.aliases());
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy");
+
+        for (String alias : aliases) {
+            String entryType;
+            String algorithm;
+            int chainLength = 0;
+
+            Certificate[] chain = keyStore.getCertificateChain(alias);
+            if (chain == null) {
+                chain = new Certificate[]{keyStore.getCertificate(alias)};
+            }
+            chainLength = chain.length;
+
+            X509Certificate mainCert = (X509Certificate) chain[0];
+            String subject = mainCert.getSubjectX500Principal().getName();
+            String expiry = "Expires: " + sdf.format(mainCert.getNotAfter());
+            String summary = subject + " (" + expiry + ")";
+            boolean isExpired = mainCert.getNotAfter().before(new Date());
+
+            if (keyStore.isKeyEntry(alias)) {
+                entryType = "PRIVATE_KEY";
+                KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(password.toCharArray());
+                KeyStore.PrivateKeyEntry pkEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(alias, protParam);
+                algorithm = pkEntry.getPrivateKey().getAlgorithm();
+            } else {
+                entryType = "TRUSTED_CERTIFICATE";
+                algorithm = mainCert.getPublicKey().getAlgorithm();
+            }
+
+            entries.add(new KeystoreEntryDetails(alias, entryType, chainLength, algorithm, summary, isExpired));
+        }
+        return entries;
     }
 
     public CertificateDetailsDto getCertificateDetails(MultipartFile file, String password, String alias) throws Exception {
@@ -102,41 +90,34 @@ public class KeystoreService {
     }
 
     public Resource applyModifications(MultipartFile file, KeystoreModificationRequest request) throws Exception {
-        try {
-            KeyStore keyStore = loadKeystore(file, request.password());
+        KeyStore keyStore = loadKeystore(file, request.password());
 
-            for (KeystoreModificationRequest.Modification mod : request.modifications()) {
-                switch (mod.type()) {
-                    case "DELETE":
-                        if (keyStore.containsAlias(mod.alias())) {
-                            keyStore.deleteEntry(mod.alias());
-                            auditEventService.logEvent("DELETE_KEYSTORE_ENTRY", "Deleted entry '" + mod.alias() + "' from " + file.getOriginalFilename(), true);
+        for (KeystoreModificationRequest.Modification mod : request.modifications()) {
+            switch (mod.type()) {
+                case "DELETE":
+                    if (keyStore.containsAlias(mod.alias())) {
+                        keyStore.deleteEntry(mod.alias());
+                    }
+                    break;
+                case "RENAME":
+                    if (keyStore.containsAlias(mod.alias()) && !keyStore.containsAlias(mod.newAlias())) {
+                        Certificate cert = keyStore.getCertificate(mod.alias());
+                        if (keyStore.isKeyEntry(mod.alias())) {
+                            KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(request.password().toCharArray());
+                            KeyStore.Entry entry = keyStore.getEntry(mod.alias(), protParam);
+                            keyStore.setEntry(mod.newAlias(), entry, protParam);
+                        } else {
+                            keyStore.setCertificateEntry(mod.newAlias(), cert);
                         }
-                        break;
-                    case "RENAME":
-                        if (keyStore.containsAlias(mod.alias()) && !keyStore.containsAlias(mod.newAlias())) {
-                            Certificate cert = keyStore.getCertificate(mod.alias());
-                            if (keyStore.isKeyEntry(mod.alias())) {
-                                KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(request.password().toCharArray());
-                                KeyStore.Entry entry = keyStore.getEntry(mod.alias(), protParam);
-                                keyStore.setEntry(mod.newAlias(), entry, protParam);
-                            } else {
-                                keyStore.setCertificateEntry(mod.newAlias(), cert);
-                            }
-                            keyStore.deleteEntry(mod.alias());
-                            auditEventService.logEvent("RENAME_KEYSTORE_ENTRY", "Renamed entry '" + mod.alias() + "' to '" + mod.newAlias() + "' in " + file.getOriginalFilename(), true);
-                        }
-                        break;
-                }
+                        keyStore.deleteEntry(mod.alias());
+                    }
+                    break;
             }
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            keyStore.store(baos, request.password().toCharArray());
-            return new ByteArrayResource(baos.toByteArray());
-        } catch (Exception e) {
-            auditEventService.logEvent("SAVE_KEYSTORE_CHANGES", "Failed to save changes to keystore: " + file.getOriginalFilename() + " - " + e.getMessage(), false);
-            throw e;
         }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        keyStore.store(baos, request.password().toCharArray());
+        return new ByteArrayResource(baos.toByteArray());
     }
 
     private CertificateDetailsDto convertToDto(X509Certificate cert) throws Exception {

@@ -19,12 +19,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+      - "5005:5005"
     volumes:
       - ./keystores:/app/keystores
       - ./crl_db:/app/crl_db
     environment:
       # To disable authentication for development, set the profile to "no-auth"
-      - SPRING_PROFILES_ACTIVE=no-auth
+#      - SPRING_PROFILES_ACTIVE=no-auth
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/keymanager
       - SPRING_DATASOURCE_USERNAME=keymanager
       - SPRING_DATASOURCE_PASSWORD=password

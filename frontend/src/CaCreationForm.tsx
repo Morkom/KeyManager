@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Button, TextField, Typography, Paper, Grid,
   FormControl, InputLabel, OutlinedInput, InputAdornment, IconButton, Alert,
-  Select, MenuItem
+  Select, MenuItem, ListItemText, Checkbox
 } from '@mui/material';
 import { Visibility, VisibilityOff, ContentCopy } from '@mui/icons-material';
 import axios from 'axios';
@@ -14,6 +14,19 @@ interface CaCreationFormProps {
   onCreationSuccess: () => void;
 }
 
+interface AlgorithmDto {
+    id: string;
+    name: string;
+    description: string;
+}
+
+interface ExtensionDto {
+    id: string;
+    name: string;
+    description: string;
+}
+
+
 const CaCreationForm: React.FC<CaCreationFormProps> = ({ onCreationSuccess }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
@@ -22,17 +35,56 @@ const CaCreationForm: React.FC<CaCreationFormProps> = ({ onCreationSuccess }) =>
     organizationalUnit: 'IT Department',
     country: 'CZ',
     validityDays: 3650,
-    keyAlgorithm: 'RSA',
-    password: ''
+    keyAlgorithm: 'RSA-4096',
+    password: '',
+    extensions: [] as string[],
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<{ certificatePem: string; keystoreDownloadUrl: string } | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [availableAlgorithms, setAvailableAlgorithms] = useState<AlgorithmDto[]>([]);
+  const [availableExtensions, setAvailableExtensions] = useState<ExtensionDto[]>([]);
+
+  useEffect(() => {
+    const fetchAlgorithms = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/algorithms`);
+            setAvailableAlgorithms(res.data);
+        } catch (err) {
+            console.error("Failed to fetch algorithms:", err);
+        }
+    };
+    const fetchExtensions = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/extensions`);
+            setAvailableExtensions(res.data);
+            // Pre-select some common extensions for a root CA
+            const defaultExtensions = res.data
+                .filter(ext => ["keyCertSign", "crlSign", "subjectKeyIdentifier", "authorityKeyIdentifier"].includes(ext.id))
+                .map(ext => ext.id);
+            setFormData(prev => ({ ...prev, extensions: defaultExtensions }));
+        } catch (err) {
+            console.error("Failed to fetch extensions:", err);
+        }
+    };
+    fetchAlgorithms();
+    fetchExtensions();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name as string]: value });
+  };
+
+  const handleExtensionsChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    const {
+      target: { value },
+    } = event;
+    setFormData({
+      ...formData,
+      extensions: typeof value === 'string' ? value.split(',') : value as string[],
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,8 +192,11 @@ const CaCreationForm: React.FC<CaCreationFormProps> = ({ onCreationSuccess }) =>
                 label={t('keyAlgorithm')}
                 onChange={handleChange as any}
               >
-                <MenuItem value="RSA">RSA-4096</MenuItem>
-                <MenuItem value="EC">ECDSA-P384</MenuItem>
+                {availableAlgorithms.map((algo) => (
+                  <MenuItem key={algo.id} value={algo.id}>
+                    <ListItemText primary={algo.name} secondary={algo.description} />
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -167,6 +222,30 @@ const CaCreationForm: React.FC<CaCreationFormProps> = ({ onCreationSuccess }) =>
                 }
                 label={t('keystorePassword')}
               />
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <FormControl fullWidth>
+                <InputLabel id="extensions-label">Extensions</InputLabel>
+                <Select
+                    labelId="extensions-label"
+                    multiple
+                    value={formData.extensions}
+                    onChange={handleExtensionsChange as any}
+                    input={<OutlinedInput label="Extensions" />}
+                    renderValue={(selected) => (
+                        (selected as string[])
+                            .map(id => availableExtensions.find(ext => ext.id === id)?.name || id)
+                            .join(', ')
+                    )}
+                >
+                    {availableExtensions.map((ext) => (
+                        <MenuItem key={ext.id} value={ext.id}>
+                            <Checkbox checked={formData.extensions.indexOf(ext.id) > -1} />
+                            <ListItemText primary={ext.name} secondary={ext.description} />
+                        </MenuItem>
+                    ))}
+                </Select>
             </FormControl>
           </Grid>
         </Grid>

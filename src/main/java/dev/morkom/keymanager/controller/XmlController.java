@@ -1,5 +1,8 @@
 package dev.morkom.keymanager.controller;
 
+import dev.morkom.keymanager.dto.XmlGenerateRequest;
+import dev.morkom.keymanager.dto.XmlGenerateResponse;
+import dev.morkom.keymanager.dto.XmlTransformResponse;
 import dev.morkom.keymanager.dto.XmlValidationResponse;
 import dev.morkom.keymanager.service.XmlService;
 import org.springframework.http.ResponseEntity;
@@ -34,8 +37,20 @@ public class XmlController {
         }
     }
 
+    @PostMapping("/transform")
+    public ResponseEntity<XmlTransformResponse> transformXml(
+            @RequestParam("xmlFile") MultipartFile xmlFile,
+            @RequestParam("xsltFile") MultipartFile xsltFile) {
+        return ResponseEntity.ok(xmlService.transform(xmlFile, xsltFile));
+    }
+
     @GetMapping("/prepackaged-xsds")
     public ResponseEntity<List<String>> getPrepackagedXsds() throws IOException {
         return ResponseEntity.ok(xmlService.listPrepackagedXsds());
+    }
+
+    @PostMapping("/generate")
+    public ResponseEntity<XmlGenerateResponse> generateXml(@RequestBody XmlGenerateRequest request) {
+        return ResponseEntity.ok(xmlService.generateXmlFromXsd(request));
     }
 }

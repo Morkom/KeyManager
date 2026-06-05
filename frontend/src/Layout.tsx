@@ -1,24 +1,21 @@
 import React from 'react';
-import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, Select, MenuItem, FormControl, SelectChangeEvent, IconButton, Paper, Divider } from '@mui/material';
+import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, Select, MenuItem, FormControl, SelectChangeEvent, IconButton, Paper } from '@mui/material';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from './AuthContext';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import GppBadIcon from '@mui/icons-material/GppBad';
 import KeyIcon from '@mui/icons-material/Key';
 import PolicyIcon from '@mui/icons-material/Policy';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 import SshIcon from '@mui/icons-material/VpnKey';
 import ScienceIcon from '@mui/icons-material/Science';
 import CodeIcon from '@mui/icons-material/Code';
+import DrawIcon from '@mui/icons-material/Draw';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 const drawerWidth = 240;
-const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED != 'no-auth';
 
 interface LayoutProps {
   mode: 'light' | 'dark';
@@ -33,7 +30,6 @@ const languages = [
 const Layout: React.FC<LayoutProps> = ({ mode, toggleColorMode }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const auth = useAuth();
 
   const handleLanguageChange = (event: SelectChangeEvent<string>) => {
     const newLang = event.target.value;
@@ -44,6 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ mode, toggleColorMode }) => {
   const menuItems = [
     { text: "Crypto Tools", icon: <ScienceIcon />, path: '/crypto' },
     { text: "XML Tools", icon: <CodeIcon />, path: '/xml' },
+    { text: "XML Signer", icon: <DrawIcon />, path: '/xml-signer' },
     { text: "SSH Keys", icon: <SshIcon />, path: '/ssh' },
     { text: t('keystoreManager'), icon: <KeyIcon />, path: '/keystore' },
     { text: t('tabCa'), icon: <AccountBalanceIcon />, path: '/ca' },
@@ -51,10 +48,6 @@ const Layout: React.FC<LayoutProps> = ({ mode, toggleColorMode }) => {
     { text: t('tabSign'), icon: <VerifiedUserIcon />, path: '/sign' },
     { text: t('tabRevoke'), icon: <GppBadIcon />, path: '/revoke' },
     { text: "Audit Log", icon: <PolicyIcon />, path: '/audit' },
-  ];
-
-  const adminMenuItems = [
-    { text: "User Management", icon: <SupervisorAccountIcon />, path: '/users' },
   ];
 
   return (
@@ -79,30 +72,6 @@ const Layout: React.FC<LayoutProps> = ({ mode, toggleColorMode }) => {
               </ListItem>
             ))}
           </List>
-          <Divider />
-          {AUTH_ENABLED && auth.roles.includes('ROLE_ADMIN') && (
-            <List>
-              {adminMenuItems.map((item) => (
-                <ListItem key={item.text} disablePadding>
-                  <ListItemButton onClick={() => navigate(item.path)}>
-                    <ListItemIcon>{item.icon}</ListItemIcon>
-                    <ListItemText primary={item.text} />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          )}
-          {AUTH_ENABLED && <Divider />}
-          {AUTH_ENABLED && (
-            <List>
-              <ListItem disablePadding>
-                <ListItemButton onClick={auth.logout}>
-                  <ListItemIcon><LogoutIcon /></ListItemIcon>
-                  <ListItemText primary="Logout" />
-                </ListItemButton>
-              </ListItem>
-            </List>
-          )}
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, height: '100vh', overflow: 'auto' }}>
@@ -111,11 +80,6 @@ const Layout: React.FC<LayoutProps> = ({ mode, toggleColorMode }) => {
             {t('appTitle')}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {AUTH_ENABLED && (
-              <Typography variant="body2" color="text.secondary">
-                Logged in as: {auth.username}
-              </Typography>
-            )}
             <FormControl size="small" variant="outlined">
               <Select
                 value={i18n.language}

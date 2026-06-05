@@ -1,8 +1,10 @@
 package dev.morkom.keymanager.util;
 
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMEncryptor;
 import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.PKCS8Generator;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -40,12 +42,30 @@ public class PemUtils {
         return stringWriter.toString();
     }
 
+    public static byte[] toPem(PublicKey publicKey) throws Exception {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+            pemWriter.writeObject(publicKey);
+        }
+        return stringWriter.toString().getBytes();
+    }
+
     public static byte[] toEncryptedPem(PrivateKey privateKey, String password, String algorithm) throws Exception {
         StringWriter stringWriter = new StringWriter();
         try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
 
-            // **THE FIX:** Use JcePEMEncryptorBuilder to create the correct PEMEncryptor type.
-            PEMEncryptor encryptor = new JcePEMEncryptorBuilder(algorithm)
+            ASN1ObjectIdentifier encryptionAlgorithm;
+            switch (algorithm) {
+                case "AES_128_CBC":
+                    encryptionAlgorithm = PKCS8Generator.AES_128_CBC;
+                    break;
+                case "AES_256_CBC":
+                default:
+                    encryptionAlgorithm = PKCS8Generator.AES_256_CBC;
+                    break;
+            }
+
+            PEMEncryptor encryptor = new JcePEMEncryptorBuilder(encryptionAlgorithm.getId())
                     .setSecureRandom(new java.security.SecureRandom())
                     .build(password.toCharArray());
 

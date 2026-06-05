@@ -1,22 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CssBaseline, GlobalStyles, Paper } from '@mui/material';
+import { CssBaseline, GlobalStyles } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AuthProvider } from './AuthContext';
-import ProtectedRoute from './ProtectedRoute';
 import Layout from './Layout';
-import LoginPage from './LoginPage';
 import CaManagement from './CaManagement';
 import CreateCsrForm from './CreateCsrForm';
 import SignCertificateForm from './SignCertificateForm';
 import RevocationManagement from './RevocationManagement';
 import KeystoreManager from './KeystoreManager';
 import AuditLog from './AuditLog';
-import UserManagement from './UserManagement';
 import SshKeyGenerator from './SshKeyGenerator';
 import CryptoToolsPage from './CryptoToolsPage';
-import XmlValidator from './XmlValidator';
+import XmlToolsPage from './XmlToolsPage';
+import XmlSigner from './XmlSigner';
 
 const AppContent: React.FC = () => {
   const { i18n } = useTranslation();
@@ -57,9 +54,8 @@ const AppContent: React.FC = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <GlobalStyles styles={{ body: { background: theme.palette.background.default } }} />
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route element={<ProtectedRoute />}>
+      <BrowserRouter>
+        <Routes>
           <Route path="/" element={<Layout mode={mode} toggleColorMode={toggleColorMode} />}>
             <Route index element={<Navigate to="/xml" replace />} />
             <Route path="ca" element={<CaManagement />} />
@@ -68,23 +64,17 @@ const AppContent: React.FC = () => {
             <Route path="revoke" element={<RevocationManagement />} />
             <Route path="keystore" element={<KeystoreManager />} />
             <Route path="audit" element={<AuditLog />} />
-            <Route path="users" element={<UserManagement />} />
             <Route path="ssh" element={<SshKeyGenerator />} />
             <Route path="crypto" element={<CryptoToolsPage />} />
-            <Route path="xml" element={<XmlValidator />} />
+            <Route path="xml" element={<XmlToolsPage />} />
+            <Route path="xml-signer" element={<XmlSigner />} />
           </Route>
-        </Route>
-      </Routes>
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </BrowserRouter>
-  );
+  return <AppContent />;
 }

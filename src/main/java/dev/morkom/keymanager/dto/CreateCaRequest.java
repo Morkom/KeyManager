@@ -1,5 +1,7 @@
 package dev.morkom.keymanager.dto;
 
+import java.util.List;
+
 public record CreateCaRequest(
     String commonName,
     String organization,
@@ -7,5 +9,6 @@ public record CreateCaRequest(
     String country,
     int validityDays,
     String keyAlgorithm,
-    String password
+    String password,
+    List<String> extensions
 ) {}

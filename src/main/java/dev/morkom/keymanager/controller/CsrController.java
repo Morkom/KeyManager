@@ -3,7 +3,6 @@ package dev.morkom.keymanager.controller;
 import dev.morkom.keymanager.dto.CreateCsrRequest;
 import dev.morkom.keymanager.dto.CreateCsrResponse;
 import dev.morkom.keymanager.service.CsrService;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,21 +27,34 @@ public class CsrController {
     }
 
     @GetMapping("/download/{filename}")
-    public ResponseEntity<Resource> downloadPrivateKey(@PathVariable String filename) throws IOException {
-        Resource resource = csrService.loadPrivateKeyAsResource(filename);
+    public ResponseEntity<byte[]> downloadPrivateKey(@PathVariable String filename) throws IOException {
+        byte[] data = csrService.getPrivateKeyAsBytes(filename);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(data.length))
+                .body(data);
     }
 
     @PostMapping("/download-pem")
-    public ResponseEntity<Resource> downloadEncryptedPemKey(@RequestBody CreateCsrRequest request) throws Exception {
-        Resource resource = csrService.generateEncryptedPemKey(request);
+    public ResponseEntity<byte[]> downloadEncryptedPemKey(@RequestBody CreateCsrRequest request) throws Exception {
+        byte[] data = csrService.generateEncryptedPemKey(request);
         String filename = "private-key-" + request.commonName().replaceAll("\\s+", "_").toLowerCase() + ".pem";
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .body(resource);
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(data.length))
+                .body(data);
+    }
+
+    @PostMapping("/download-public-key")
+    public ResponseEntity<byte[]> downloadPublicKey(@RequestBody CreateCsrRequest request) throws Exception {
+        byte[] data = csrService.generatePublicKey(request);
+        String filename = "public-key-" + request.commonName().replaceAll("\\s+", "_").toLowerCase() + ".pem";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(data.length))
+                .body(data);
     }
 }
